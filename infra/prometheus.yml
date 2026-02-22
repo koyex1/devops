@@ -1,0 +1,50 @@
+global:
+  scrape_interval: 5s
+
+scrape_configs:
+
+- job_name: 'node'
+  static_configs:
+    - targets: ['node-exporter:9100']
+
+- job_name: 'cadvisor'
+  static_configs:
+    - targets: ['cadvisor:8080']
+
+- job_name: 'postgres'
+  static_configs:
+    - targets: ['postgres-exporter:9187']
+
+- job_name: 'redis'
+  static_configs:
+    - targets: ['redis-exporter:9121']
+
+- job_name: 'rabbitmq'
+  static_configs:
+    - targets: ['rabbitmq:15692']
+
+- job_name: 'kafka'
+  static_configs:
+    - targets: ['kafka-exporter:9308']
+#created my own exporter for backend service, which is a simple HTTP server that exposes metrics in Prometheus format. The metrics can be accessed at the /metrics endpoint, and the default port for the backend Prometheus exporter is 4000.
+- job_name: 'backend'
+  static_configs:
+    - targets: ['backend:4000']
+#no exporter - has its own exporter from its own original service. Note: Envoy is a high-performance proxy and communication bus designed for modern cloud-native applications. It provides a built-in Prometheus exporter to expose its metrics. The metrics can be accessed at the /stats/prometheus endpoint, and the default port for the Envoy Prometheus exporter is 9901.
+- job_name: 'envoy'
+  metrics_path: /stats/prometheus
+  static_configs:
+    - targets: ['envoy:9901']
+#no exporter - has its own exporter from its own original service. Note: APISIX is a cloud-native API gateway, which provides a built-in Prometheus exporter to expose its metrics. The metrics can be accessed at the /apisix/prometheus endpoint, and the default port for the APISIX Prometheus exporter is 9091.
+- job_name: 'apisix'
+  metrics_path: /apisix/prometheus/metrics
+  static_configs:
+    - targets: ['apisix:9091']
+
+- job_name: 'elasticsearch'
+  static_configs:
+    - targets: ['elasticsearch-exporter:9114']
+    
+- job_name: 'zookeeper'
+  static_configs:
+    - targets: ['zookeeper-exporter:9143']

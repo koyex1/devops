@@ -1,0 +1,201 @@
+name: 'Node.js Setup'
+description: 'Sets up Node.js with caching and installs dependencies'
+
+inputs:
+  node-version:
+    description: 'Node version to use'
+    required: false
+    default: '18'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: ${{ inputs.node-version }}
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+      shell: bash
+
+
+
+
+
+name: 'SonarQube Scan'
+description: 'Runs SonarQube analysis'
+
+inputs:
+  sonar-token:
+    description: 'SonarQube token'
+    required: true
+  sonar-host:
+    description: 'SonarQube host URL'
+    required: true
+  project-key:
+    description: 'SonarQube project key'
+    required: true
+
+runs:
+  using: 'composite'
+  steps:
+    - name: SonarQube Scan
+      uses: sonarsource/sonarqube-scan-action@master
+      env:
+        SONAR_TOKEN: ${{ inputs.sonar-token }}
+        SONAR_HOST_URL: ${{ inputs.sonar-host }}
+      with:
+        args: >
+          -Dsonar.projectKey=${{ inputs.project-key }}
+          -Dsonar.sources=src
+          -Dsonar.tests=test
+          -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
+
+
+
+
+
+name: 'Trivy Security Scans'
+description: 'Runs Trivy filesystem and image scans'
+
+inputs:
+  image-tag:
+    description: 'Docker image tag to scan'
+    required: false
+    default: ''
+  scan-fs:
+    description: 'Scan filesystem'
+    required: false
+    default: 'true'
+
+runs:
+  using: 'composite'
+  steps:
+    # Filesystem scan
+    - name: Run Trivy filesystem scan
+      if: inputs.scan-fs == 'true'
+      uses: aquasecurity/trivy-action@master
+      with:
+        scan-type: 'fs'
+        scan-ref: '.'
+        format: 'sarif'
+        output: 'trivy-fs-results.sarif'
+        
+    - name: Upload FS scan results
+      if: inputs.scan-fs == 'true'
+      uses: github/codeql-action/upload-sarif@v2
+      with:
+        sarif_file: 'trivy-fs-results.sarif'
+    
+    # Image scan (if tag provided)
+    - name: Run Trivy image scan
+      if: inputs.image-tag != ''
+      uses: aquasecurity/trivy-action@master
+      with:
+        scan-type: 'image'
+        image-ref: ${{ inputs.image-tag }}
+        format: 'sarif'
+        output: 'trivy-image-results.sarif'
+        severity: 'CRITICAL,HIGH'
+        
+    - name: Upload image scan results
+      if: inputs.image-tag != ''
+      uses: github/codeql-action/upload-sarif@v2
+      with:
+        sarif_file: 'trivy-image-results.sarif'
+
+
+
+
+
+name: 'Docker Build and Deploy'
+description: 'Builds Docker image and deploys to server'
+
+inputs:
+  image-name:
+    description: 'Docker image name'
+    required: true
+  sha:
+    description: 'Git SHA for tagging'
+    required: true
+  deploy-to:
+    description: 'Environment to deploy to'
+    required: false
+    default: ''
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Build Docker image
+      run: |
+        docker build -t ${{ inputs.image-name }}:${{ inputs.sha }} .
+        docker tag ${{ inputs.image-name }}:${{ inputs.sha }} ${{ inputs.image-name }}:latest
+      shell: bash
+    
+    - name: Deploy to server
+      if: inputs.deploy-to != ''
+      run: |
+        echo "Deploying to ${{ inputs.deploy-to }} environment..."
+        # Add your deployment commands here
+        # ssh user@server "docker pull ${{ inputs.image-name }}:latest && docker-compose up -d"
+      shell: bash
+
+
+
+
+name: Full CI/CD Pipeline - Composite Actions Version
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  pipeline:
+    runs-on: ubuntu-latest
+    
+    steps:
+      # 1. CHECKOUT - Still need this
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      # 2. NODE SETUP (Composite Action)
+      - name: Setup Node environment
+        uses: ./.github/actions/node-setup
+        with:
+          node-version: '18'
+
+      # 3. SONARQUBE (Composite Action)
+      - name: Run SonarQube analysis
+        uses: ./.github/actions/sonarqube-scan
+        with:
+          sonar-token: ${{ secrets.SONAR_TOKEN }}
+          sonar-host: ${{ secrets.SONAR_HOST_URL }}
+          project-key: 'my-node-app'
+
+      # 4. RUN TESTS (regular step)
+      - name: Run tests with coverage
+        run: npm test -- --coverage
+
+      # 5. TRIVY SCANS (Composite Action)
+      - name: Run security scans
+        uses: ./.github/actions/trivy-scans
+        with:
+          scan-fs: 'true'
+
+      # 6. BUILD APP (regular step)
+      - name: Build application
+        run: npm run build
+
+      # 7. DOCKER & DEPLOY (Composite Action)
+      - name: Docker build and deploy
+        uses: ./.github/actions/docker-deploy
+        with:
+          image-name: 'my-app'
+          sha: ${{ github.sha }}
+          deploy-to: ${{ github.ref == 'refs/heads/main' && 'production' || '' }}

@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+package echo;
+
+service EchoService {
+  //we created only 2 remote procedure calls - sayHello with argument HelloRequest that takes input name
+  //and returns HelloReplay with output message. while for StreamTime it takes TimeRequest with input everySeconds
+  //and returns a stream of TimeReply with output isoTime.
+  rpc SayHello(HelloRequest) returns (HelloReply) {} 
+  rpc StreamTime(TimeRequest) returns (stream TimeReply) {}
+}
+
+message HelloRequest {
+  string name = 1;
+}
+
+message HelloReply {
+  string message = 1;
+}
+
+message TimeRequest {
+  int32 everySeconds = 1;
+}
+
+message TimeReply {
+  string isoTime = 1;
+}

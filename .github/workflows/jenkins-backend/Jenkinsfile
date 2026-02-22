@@ -1,0 +1,247 @@
+//jenkins pipeline
+pipeline {
+    agent any
+
+    tools {
+        nodejs "Node20"                 // Jenkins NodeJS Tool Name
+        sonarScanner "SonarScanner"     // Jenkins Sonar Scanner Tool Name
+    }
+
+    environment {
+        IMAGE_NAME = "yourdockerhubusername/yourapp"
+        SONARQUBE_ENV = "SonarQube"
+        TRIVY_CACHE_DIR = "${WORKSPACE}/.trivycache"
+    }
+
+    options {
+        timestamps()
+        ansiColor('xterm')
+        buildDiscarder(logRotator(numToKeepStr: '10'))
+    }
+
+    stages {
+
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Path Filter') {
+            steps {
+                script {
+                    def changes = sh(
+                        script: "git diff --name-only origin/main...HEAD || true",
+                        returnStdout: true
+                    ).trim()
+
+                    if (!changes.contains("backend/") && !changes.contains(".github/")) {
+                        echo "No relevant changes. Stopping pipeline."
+                        currentBuild.result = 'SUCCESS'
+                        error("No relevant path changes.")
+                    }
+                }
+            }
+        }
+
+        stage('Install Dependencies') {
+            steps {
+                sh 'node -v'
+                sh 'npm -v'
+                sh 'npm ci'
+            }
+        }
+
+        stage('Lint') {
+            steps {
+                sh 'npm run lint'
+            }
+        }
+
+        stage('Test') {
+            steps {
+                sh 'npm test -- --coverage'
+            }
+            post {
+                always {
+                    junit '**/junit.xml'
+                    publishHTML(target: [
+                        reportDir: 'coverage',
+                        reportFiles: 'index.html',
+                        reportName: 'Test Coverage Report'
+                    ])
+                }
+            }
+        }
+
+        stage('SonarQube Analysis') {
+            steps {
+                withSonarQubeEnv("${SONARQUBE_ENV}") {
+                    sh """
+                      sonar-scanner \
+                        -Dsonar.projectKey=your-project-key \
+                        -Dsonar.sources=. \
+                        -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
+                    """
+                }
+            }
+        }
+
+        stage('SonarQube Quality Gate') {
+            steps {
+                timeout(time: 5, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
+                }
+            }
+        }
+
+        stage('Filesystem Dependency Scan (Trivy)') {
+            steps {
+                sh """
+                  docker run --rm \
+                    -v \$PWD:/project \
+                    -v ${TRIVY_CACHE_DIR}:/root/.cache \
+                    aquasec/trivy:latest \
+                    fs \
+                    --format json \
+                    --output trivy-fs-report.json \
+                    --severity CRITICAL,HIGH \
+                    --exit-code 1 \
+                    /project
+                """
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: 'trivy-fs-report.json', fingerprint: true
+                }
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                sh """
+                  docker build -t ${IMAGE_NAME}:${env.BUILD_NUMBER} .
+                  docker tag ${IMAGE_NAME}:${env.BUILD_NUMBER} ${IMAGE_NAME}:latest
+                """
+            }
+        }
+
+        stage('Docker Image Scan (Trivy)') {
+            steps {
+                sh """
+                  docker run --rm \
+                    -v /var/run/docker.sock:/var/run/docker.sock \
+                    -v ${TRIVY_CACHE_DIR}:/root/.cache \
+                    aquasec/trivy:latest \
+                    image \
+                    --format json \
+                    --output trivy-image-report.json \
+                    --severity CRITICAL,HIGH \
+                    --exit-code 1 \
+                    ${IMAGE_NAME}:${env.BUILD_NUMBER}
+                """
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: 'trivy-image-report.json', fingerprint: true
+                }
+            }
+        }
+
+        stage('Push Image') {
+            steps {
+                withCredentials([usernamePassword(
+                    credentialsId: 'dockerhub-creds',
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_PASS'
+                )]) {
+
+                    sh """
+                      echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
+                      docker push ${IMAGE_NAME}:${env.BUILD_NUMBER}
+                      docker push ${IMAGE_NAME}:latest
+                    """
+                }
+            }
+        }
+
+        stage('Deploy') {
+            when {
+                branch 'main'
+            }
+
+            steps {
+                withCredentials([sshUserPrivateKey(
+                    credentialsId: 'server-ssh',
+                    keyFileVariable: 'SSH_KEY',
+                    usernameVariable: 'SSH_USER'
+                )]) {
+
+                    sh """
+                      ssh -i $SSH_KEY -o StrictHostKeyChecking=no \
+                      $SSH_USER@your.server.ip '
+                        docker pull ${IMAGE_NAME}:latest &&
+                        docker stop app || true &&
+                        docker rm app || true &&
+                        docker run -d \
+                          --restart unless-stopped \
+                          --name app \
+                          -p 4000:4000 \
+                          ${IMAGE_NAME}:latest
+                      '
+                    """
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            cleanWs()
+        }
+
+        success {
+            echo "Pipeline completed successfully."
+        }
+
+        failure {
+            echo "Pipeline failed."
+        }
+    }
+}
+
+
+
+/*pipeline {
+    agent any
+
+    stages {
+
+        stage('Check Path Changes') {
+            when {
+                anyOf {
+                    changeset "**/backend/**"
+                    changeset "**/.github/**"
+                }
+            }
+            steps {
+                echo "Relevant changes detected."
+            }
+        }
+
+        stage('Build') {
+            when {
+                anyOf {
+                    changeset "**/backend/**"
+                    changeset "**/.github/**"
+                }
+            }
+            steps {
+                echo "Running build..."
+                sh 'npm ci'
+            }
+        }
+
+    }
+}
+*/

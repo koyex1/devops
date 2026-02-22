@@ -1,0 +1,113 @@
+const http = require("http");
+const WebSocket = require("ws");
+const StompServer = require("stomp-broker-js");
+
+/**
+ * Create STOMP-over-WebSocket server
+ */
+function createStompServer(httpServer, { logger }) {
+  // Raw WebSocket server
+  const wss = new WebSocket.Server({
+    server: httpServer,
+    path: "/ws",
+  });
+
+  // STOMP broker
+  const stompServer = new StompServer({
+    server: wss,
+    path: "/ws",
+    heartbeat: [10000, 10000], // server → client, client → server
+  });
+
+  // --- APP DESTINATIONS (/app/*) ---
+  // Clients SEND to these → backend logic runs
+
+  stompServer.subscribe("/app/chat.send", (msg, headers) => {
+    const payload = JSON.parse(msg);
+
+    logger.info({ payload }, "STOMP /app/chat.send");
+
+    // Broadcast to topic
+    stompServer.send(
+      "/topic/chat",
+      {},
+      JSON.stringify({
+        user: payload.user,
+        message: payload.message,
+        at: new Date().toISOString(),
+      })
+    );
+  });
+
+  stompServer.subscribe("/app/typing", (msg) => {
+    const payload = JSON.parse(msg);
+
+    stompServer.send(
+      "/topic/typing",
+      {},
+      JSON.stringify({
+        user: payload.user,
+      })
+    );
+  });
+
+  logger.info("STOMP server mounted on /ws");
+
+  return stompServer;
+}
+
+module.exports = { createStompServer };
+
+
+
+
+
+
+
+
+
+SECOND
+------
+import { Client } from "@stomp/stompjs";
+
+const client = new Client({
+  brokerURL: "ws://localhost:4000/ws",
+  reconnectDelay: 5000,
+  heartbeatIncoming: 10000,
+  heartbeatOutgoing: 10000,
+});
+
+client.onConnect = () => {
+  console.log("STOMP connected");
+
+  // Subscribe to topics
+  client.subscribe("/topic/chat", (msg) => {
+    console.log("CHAT:", JSON.parse(msg.body));
+  });
+
+  client.subscribe("/topic/typing", (msg) => {
+    console.log("TYPING:", JSON.parse(msg.body));
+  });
+
+  // Send messages to app destinations
+  client.publish({
+    destination: "/app/chat.send",
+    body: JSON.stringify({
+      user: "Daniel",
+      message: "Hello STOMP!",
+    }),
+  });
+
+  client.publish({
+    destination: "/app/typing",
+    body: JSON.stringify({
+      user: "Daniel",
+    }),
+  });
+};
+
+client.onStompError = (frame) => {
+  console.error("STOMP error", frame.headers["message"]);
+};
+
+client.activate();
