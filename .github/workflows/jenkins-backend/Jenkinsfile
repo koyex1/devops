@@ -27,30 +27,6 @@ pipeline {
             }
         }
 
-        stage('Path Filter') {
-    steps {
-        script {
-            // Check if build was triggered manually
-            boolean isManualBuild = currentBuild.rawBuild.getCause(hudson.model.Cause$UserIdCause) != null
-            
-            if (isManualBuild) {
-                echo "Manual build triggered - skipping path filter"
-                return  // Skip the filter entirely
-            }
-            
-            def changes = sh(
-                script: "git diff --name-only origin/main...HEAD || true",
-                returnStdout: true
-            ).trim()
-
-            if (!changes.contains("backend/") && !changes.contains(".github/")) {
-                echo "No relevant changes. Stopping pipeline."
-                currentBuild.result = 'SUCCESS'
-                error("No relevant path changes.")
-            }
-        }
-    }
-}
 
         stage('Install Dependencies') {
             steps {
@@ -62,7 +38,7 @@ pipeline {
 
         stage('Lint') {
             steps {
-                sh 'npm run lint'
+                sh 'npm run lint' //for syntax error, code style violation, potential bugs like unused variables and empty blocks, best practices.
             }
         }
 
