@@ -11,7 +11,7 @@ pipeline {
         SONARQUBE_ENV = 'SonarQube'
         TRIVY_CACHE_DIR = "${WORKSPACE}/.trivycache"
         SONAR_PROJECT_KEY = 'sonarqubepjt'
-        SONAR_HOST_URL = 'https://sonarqube:9400'
+        SONAR_HOST_URL = 'http://sonarqube:9400'
         SONAR_TOKEN = credentials('sonartokenpjt')
     }
 
@@ -58,7 +58,10 @@ pipeline {
                     publishHTML(target: [
                         reportDir: 'backend/coverage',
                         reportFiles: 'index.html',
-                        reportName: 'Test Coverage Report'
+                        reportName: 'Test Coverage Report',
+                        keepAll: true,
+                        allowMissing: false,
+                        alwaysLinkToLastBuild: true
                     ])
                 }
             }
@@ -67,7 +70,7 @@ pipeline {
         stage('SonarQube Analysis') {
             steps {
                 dir('backend') {
-                    withSonarQubeEnv("${sonarqubeserver}") { //this is from Jenkins global system configuration
+                    withSonarQubeEnv("sonarqubeserver") { //this is from Jenkins global system configuration
                         sh 'echo $SONAR_HOST_URL'      // ← Shows your URL
                         sh 'echo $SONAR_AUTH_TOKEN'
 
