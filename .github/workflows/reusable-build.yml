@@ -15,11 +15,15 @@ on:
 jobs:
   build-and-scan:
     runs-on: ubuntu-latest
-
+    defaults:
+      run:
+        working-directory: backend
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      - uses: docker/login-action@v3
+      - name: Login to DockerHub
+        uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
@@ -64,7 +68,8 @@ jobs:
           format: sarif
           output: trivy-image.sarif
 
-      - uses: github/codeql-action/upload-sarif@v3
+      - name: Upload SARIF to GitHub Security (Image Scan)
+        uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: trivy-image.sarif
 

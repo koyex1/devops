@@ -3,54 +3,59 @@ pipeline {
     agent any
 
     tools {
-        nodejs "Node20"                 // Jenkins NodeJS Tool Name
-        //sonarScanner "SonarScanner"     // invalid tool type
+        nodejs 'Node20'
     }
 
     environment {
-        IMAGE_NAME = "yourdockerhubusername/yourapp"
-        SONARQUBE_ENV = "SonarQube"
+        IMAGE_NAME = 'yourdockerhubusername/yourapp'
+        SONARQUBE_ENV = 'SonarQube'
         TRIVY_CACHE_DIR = "${WORKSPACE}/.trivycache"
+        SONAR_PROJECT_KEY = 'sonarqubepjt'
+        SONAR_HOST_URL = 'https://sonarqube:9400'
+        SONAR_TOKEN = credentials('sonartokenpjt')
     }
 
     options {
         timestamps()
-        //ansiColor('xterm')
         buildDiscarder(logRotator(numToKeepStr: '10'))
     }
 
     stages {
-
         stage('Checkout') {
             steps {
                 checkout scm
             }
         }
 
-
         stage('Install Dependencies') {
             steps {
-                sh 'node -v'
-                sh 'npm -v'
-                sh 'npm ci'
+                dir('backend') {
+                    sh 'node -v'
+                    sh 'npm -v'
+                    sh 'npm ci'
+                }
             }
         }
 
         stage('Lint') {
             steps {
-                sh 'npm run lint' //for syntax error, code style violation, potential bugs like unused variables and empty blocks, best practices.
+                dir('backend') {
+                    sh 'npm run lint'
+                }
             }
         }
 
         stage('Test') {
             steps {
-                sh 'npm test -- --coverage'
+                dir('backend') {
+                    sh 'npm test -- --coverage'
+                }
             }
             post {
                 always {
-                    junit '**/junit.xml'
+                    junit 'backend/**/junit.xml'
                     publishHTML(target: [
-                        reportDir: 'coverage',
+                        reportDir: 'backend/coverage',
                         reportFiles: 'index.html',
                         reportName: 'Test Coverage Report'
                     ])
@@ -60,13 +65,24 @@ pipeline {
 
         stage('SonarQube Analysis') {
             steps {
-                withSonarQubeEnv("${SONARQUBE_ENV}") {
-                    sh """
-                      sonar-scanner \
-                        -Dsonar.projectKey=your-project-key \
-                        -Dsonar.sources=. \
-                        -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
-                    """
+                dir('backend') {
+                    withSonarQubeEnv("${sonarqubeserver}") { //this is from Jenkins global system configuration
+                        sh 'echo $SONAR_HOST_URL'      // ← Shows your URL
+                        sh 'echo $SONAR_AUTH_TOKEN'
+
+                        sh '''
+                          sonar-scanner \
+                            -Dsonar.projectKey=your-project-key \
+                            -Dsonar.sources=. \
+                            -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
+                        '''
+                        sh '''
+                        sonar-scanner \
+                            -Dsonar.host.url=${SONAR_HOST_URL} \
+                            -Dsonar.login=${SONAR_TOKEN} \
+                            -Dsonar.projectKey=${SONAR_PROJECT_KEY}
+                        '''
+                    }
                 }
             }
         }
@@ -83,7 +99,7 @@ pipeline {
             steps {
                 sh """
                   docker run --rm \
-                    -v \$PWD:/project \
+                    -v ${WORKSPACE}/backend:/project \
                     -v ${TRIVY_CACHE_DIR}:/root/.cache \
                     aquasec/trivy:latest \
                     fs \
@@ -104,7 +120,7 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 sh """
-                  docker build -t ${IMAGE_NAME}:${env.BUILD_NUMBER} .
+                  docker build -t ${IMAGE_NAME}:${env.BUILD_NUMBER} backend
                   docker tag ${IMAGE_NAME}:${env.BUILD_NUMBER} ${IMAGE_NAME}:latest
                 """
             }
@@ -139,7 +155,6 @@ pipeline {
                     usernameVariable: 'DOCKER_USER',
                     passwordVariable: 'DOCKER_PASS'
                 )]) {
-
                     sh """
                       echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
                       docker push ${IMAGE_NAME}:${env.BUILD_NUMBER}
@@ -160,7 +175,6 @@ pipeline {
                     keyFileVariable: 'SSH_KEY',
                     usernameVariable: 'SSH_USER'
                 )]) {
-
                     sh """
                       ssh -i $SSH_KEY -o StrictHostKeyChecking=no \
                       $SSH_USER@your.server.ip '
@@ -185,16 +199,14 @@ pipeline {
         }
 
         success {
-            echo "Pipeline completed successfully."
+            echo 'Pipeline completed successfully.'
         }
 
         failure {
-            echo "Pipeline failed."
+            echo 'Pipeline failed.'
         }
     }
 }
-
-
 
 /*pipeline {
     agent any
