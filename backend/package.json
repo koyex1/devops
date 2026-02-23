@@ -12,18 +12,6 @@
     "test": "jest --runInBand",
     "lint": "node -e \"console.log('Add ESLint if you want strict linting');\""
   },
-  "jest": {
-    "reporters": [
-      "default",
-      [
-        "jest-junit",
-        {
-          "outputDirectory": ".",
-          "outputName": "junit.xml"
-        }
-      ]
-    ]
-  },
   "keywords": [],
   "author": "",
   "license": "ISC",
