@@ -10,7 +10,7 @@
     "dev": "nodemon src/index.js",
     "start": "pm2-runtime ecosystem.config.js",
     "test": "jest --runInBand",
-    "lint": "node -e \"console.log('Add ESLint if you want strict linting'\""
+    "lint": "node -e \"console.log('Add ESLint if you want strict linting');\""
   },
   "keywords": [],
   "author": "",
