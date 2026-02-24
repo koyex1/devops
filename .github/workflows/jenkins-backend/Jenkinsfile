@@ -7,7 +7,7 @@ pipeline {
     }
 
     environment {
-        IMAGE_NAME = 'yourdockerhubusername/yourapp'
+        IMAGE_NAME = 'koyex1/backend' //{{repoName}}/{{appNameNotcontainerName}}
         SONARQUBE_ENV = 'SonarQube'
         TRIVY_CACHE_DIR = "${WORKSPACE}/.trivycache"
         SONAR_PROJECT_KEY = 'sonarqubepjt'
@@ -76,10 +76,10 @@ pipeline {
 
                         sh '''
                           sonar-scanner \
-                            -Dsonar.projectKey=your-project-key \
+                            -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
                             -Dsonar.sources=. \
                             -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
-                        '''
+                        ''' 
                         sh '''
                         sonar-scanner \
                             -Dsonar.host.url=${SONAR_HOST_URL} \
@@ -116,7 +116,8 @@ pipeline {
             }
             post {
                 always {
-                    archiveArtifacts artifacts: 'trivy-fs-report.json', fingerprint: true
+                    archiveArtifacts artifacts: './backend/**/trivy-fs-report.json', 
+                    fingerprint: true
                 }
             }
         }
@@ -124,8 +125,8 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 sh """
-                  docker build -t ${IMAGE_NAME}:${env.BUILD_NUMBER} backend
-                  docker tag ${IMAGE_NAME}:${env.BUILD_NUMBER} ${IMAGE_NAME}:latest
+                  docker build -t ${IMAGE_NAME}:jenkins${env.BUILD_NUMBER}commit${env.GIT_COMMIT} backend
+                  docker tag ${IMAGE_NAME}:jenkins${env.BUILD_NUMBER}commit${env.GIT_COMMIT} ${IMAGE_NAME}:latest
                 """
             }
         }
@@ -142,12 +143,13 @@ pipeline {
                     --output trivy-image-report.json \
                     --severity CRITICAL,HIGH \
                     --exit-code 1 \
-                    ${IMAGE_NAME}:${env.BUILD_NUMBER}
+                    ${IMAGE_NAME}:jenkins${env.BUILD_NUMBER}commit${env.GIT_COMMIT}
                 """
             }
             post {
                 always {
-                    archiveArtifacts artifacts: 'trivy-image-report.json', fingerprint: true
+                    archiveArtifacts artifacts: './backend/**/trivy-image-report.json', 
+                    fingerprint: true
                 }
             }
         }
@@ -155,13 +157,13 @@ pipeline {
         stage('Push Image') {
             steps {
                 withCredentials([usernamePassword(
-                    credentialsId: 'dockerhub-creds',
+                    credentialsId: 'dockerHubLogin',
                     usernameVariable: 'DOCKER_USER',
                     passwordVariable: 'DOCKER_PASS'
                 )]) {
                     sh """
                       echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
-                      docker push ${IMAGE_NAME}:${env.BUILD_NUMBER}
+                      docker push ${IMAGE_NAME}:jenkins${env.BUILD_NUMBER}commit${env.GIT_COMMIT}
                       docker push ${IMAGE_NAME}:latest
                     """
                 }
@@ -197,9 +199,10 @@ pipeline {
         }
     }
 
-    post {
+    post { //similar to pre and post configurationn.
         always {
-            cleanWs()
+            cleanWs()  //used to clean the workspace after the build is done, regardless of the build result. This helps to free up disk space and ensure that subsequent builds start with a clean environment.
+            //but it does not delete the artifacts that have been archived, so you can still access those after the workspace is cleaned.
         }
 
         success {

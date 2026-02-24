@@ -12,7 +12,7 @@ on:
       - 'backend/**'
 
 env:
-  IMAGE_NAME: yourdockerhubusername/yourapp
+  IMAGE_NAME: koyex1/backend
   NODE_VERSION: 20.20.0
 
 jobs:
@@ -68,15 +68,16 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: junit-report
-          path: junit.xml
+          path: ./backend/junit.xml
 
       - name: Upload Coverage Report
         uses: actions/upload-artifact@v4
         with:
           name: coverage-report
-          path: coverage/
+          path: ./backend/coverage/
 
   sonar:
+    condition: false #if: false can also be used. we have disabled because no sonar server is set up yet, so this step will always fail. once we have the sonar server set up, we can enable this step by removing the condition.
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -120,9 +121,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: trivy-fs-report
-          path: trivy-fs-report.json
+          path: .backend/trivy-fs-report.json
 
-      - name: Upload SARIF to GitHub Security
+      - name: Trivy FS Scan (SARIF)
         uses: aquasecurity/trivy-action@0.20.0
         with:
           scan-type: fs
