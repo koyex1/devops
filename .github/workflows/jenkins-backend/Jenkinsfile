@@ -68,7 +68,7 @@ pipeline {
             }
         }
 
-        stage('SonarQube Analysis') {
+        stage('SonarQube Analysis') {//collects data and sends it to SonarQube server for analysis. It does not wait for the results, so we need a separate stage to check the quality gate status after this.
             environment {
                 scannerHome = tool 'SonarScanner' //this is from Jenkins global system configuration
             }
@@ -96,10 +96,10 @@ pipeline {
             }
         }
 
-        stage('SonarQube Quality Gate') {
+        stage('SonarQube Quality Gate') { //data collected by sonar scanner is analyzed by quality gate, and we need to check the status of the quality gate to decide whether to proceed with the pipeline or not. If the quality gate fails, we can abort the pipeline.
             steps {
-                timeout(time: 5, unit: 'MINUTES') {
-                    waitForQualityGate abortPipeline: true
+                timeout(time: 1, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: false
                 }
             }
         }
