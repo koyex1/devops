@@ -1,5 +1,9 @@
 name: Full CI/CD Pipeline
 
+permissions: #permission for reports to be uploaded to GitHub Security tab.
+  contents: read
+  security-events: write
+
 on:
   push:
     branches: [main]
