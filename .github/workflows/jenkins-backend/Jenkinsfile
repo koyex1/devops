@@ -71,14 +71,13 @@ pipeline {
         stage('SonarQube Analysis') {
             steps {
                 dir('backend') {
-                    def scannerHome = tool 'SonarScanner'  
 
                     withSonarQubeEnv("sonarqubeserver") { //this is from Jenkins global system configuration
                         sh 'echo $SONAR_HOST_URL'      // ← Shows your URL
                         sh 'echo $SONAR_AUTH_TOKEN'
 
                         sh """
-                           ${scannerHome}/bin/sonar-scanner \
+                            sonar-scanner \
                             -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
                             -Dsonar.sources=. \
                             -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
