@@ -77,7 +77,7 @@ jobs:
           path: ./backend/coverage/
 
   sonar:
-    condition: false #if: false can also be used. we have disabled because no sonar server is set up yet, so this step will always fail. once we have the sonar server set up, we can enable this step by removing the condition.
+    if: false
     runs-on: ubuntu-latest
     defaults:
       run:

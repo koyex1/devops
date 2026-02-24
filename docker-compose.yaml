@@ -553,6 +553,8 @@ services:
     image: jenkins/jenkins:lts
     container_name: devops-jenkins
     user: root
+    environment:
+      JAVA_OPTS: -Dhudson.model.DirectoryBrowserSupport.CSP=
     ports:
       - "8480:8080"
       - "50000:50000"
