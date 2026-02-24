@@ -4,7 +4,7 @@ pipeline {
 
     tools {
         nodejs 'Node20.20' //calling the tool name in tool configuration because there are several tool names created with different versions, so we need to specify which one we want to use in this pipeline.
-        //sonar 'SonarScanner'
+    //sonar 'SonarScanner'
     }
 
     environment {
@@ -69,15 +69,18 @@ pipeline {
         }
 
         stage('SonarQube Analysis') {
+            environment {
+                scannerHome = tool 'SonarScanner' //this is from Jenkins global system configuration
+            }
+
             steps {
                 dir('backend') {
-
-                    withSonarQubeEnv("sonarqubeserver") { //this is from Jenkins global system configuration
+                    withSonarQubeEnv('sonarqubeserver') { //this is from Jenkins global system configuration
                         sh 'echo $SONAR_HOST_URL'      // ← Shows your URL
                         sh 'echo $SONAR_AUTH_TOKEN'
 
                         sh """
-                            sonar-scanner \
+                           ${scannerHome}/bin/sonar-scanner \
                             -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
                             -Dsonar.sources=. \
                             -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
@@ -118,7 +121,7 @@ pipeline {
             }
             post {
                 always {
-                    archiveArtifacts artifacts: './backend/**/trivy-fs-report.json', 
+                    archiveArtifacts artifacts: './backend/**/trivy-fs-report.json',
                     fingerprint: true
                 }
             }
@@ -150,7 +153,7 @@ pipeline {
             }
             post {
                 always {
-                    archiveArtifacts artifacts: './backend/**/trivy-image-report.json', 
+                    archiveArtifacts artifacts: './backend/**/trivy-image-report.json',
                     fingerprint: true
                 }
             }
@@ -204,7 +207,7 @@ pipeline {
     post { //similar to pre and post configurationn.
         always {
             cleanWs()  //used to clean the workspace after the build is done, regardless of the build result. This helps to free up disk space and ensure that subsequent builds start with a clean environment.
-            //but it does not delete the artifacts that have been archived, so you can still access those after the workspace is cleaned.
+        //but it does not delete the artifacts that have been archived, so you can still access those after the workspace is cleaned.
         }
 
         success {
