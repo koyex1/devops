@@ -98,7 +98,7 @@ pipeline {
 
         stage('SonarQube Quality Gate') { //data collected by sonar scanner is analyzed by quality gate, and we need to check the status of the quality gate to decide whether to proceed with the pipeline or not. If the quality gate fails, we can abort the pipeline.
             steps {
-                timeout(time: 3, unit: 'MINUTES') {
+                timeout(time: 4, unit: 'MINUTES') {
                     waitForQualityGate abortPipeline: false
                 }
             }

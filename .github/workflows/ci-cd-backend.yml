@@ -17,7 +17,6 @@ on:
       - 'backend/**'
 
 env:
-  IMAGE_NAME: koyex1/backend
   NODE_VERSION: 20.20.0
 
 jobs:
@@ -145,7 +144,7 @@ jobs:
     needs: [dependency-scan]
     uses: ./.github/workflows/reusable-build.yml
     with:
-      image_name: ${{env.IMAGE_NAME}}
+      image_name: ${{vars.IMAGE_NAME}}
     secrets:
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
       DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
@@ -165,11 +164,11 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
-            docker pull ${{env.IMAGE_NAME}}:latest
+            docker pull ${{vars.IMAGE_NAME}}:latest
             docker stop app || true
             docker rm app || true
             docker run -d \
               --name app \
               -p 4000:4000 \
               --restart unless-stopped \
-              ${{env.IMAGE_NAME}}:latest
+              ${{vars.IMAGE_NAME}}:latest
