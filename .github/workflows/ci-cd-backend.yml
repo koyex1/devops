@@ -81,7 +81,7 @@ jobs:
           name: coverage-report
           path: ./backend/coverage/
 
-  sonar:
+  sonar: 
     if: false
     runs-on: ubuntu-latest
     defaults:
