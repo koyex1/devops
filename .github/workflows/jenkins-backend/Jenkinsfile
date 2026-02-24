@@ -4,7 +4,7 @@ pipeline {
 
     tools {
         nodejs 'Node20.20' //calling the tool name in tool configuration because there are several tool names created with different versions, so we need to specify which one we want to use in this pipeline.
-        sonarScanner 'SonarScanner'
+        sonar 'SonarScanner'
     }
 
     environment {

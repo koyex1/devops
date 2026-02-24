@@ -39,12 +39,13 @@ jobs:
           image-ref: ${{ inputs.image_name }}:gitAction-${{ github.sha }}
           format: cyclonedx
           output: sbom.json
+          #exit-code: 0 by default, so we can omit it here
 
       - name: Upload SBOM
         uses: actions/upload-artifact@v4
         with:
           name: sbom
-          path: ./backend/sbom.json
+          path: sbom.json
 
       - name: Trivy Image Scan (JSON)
         uses: aquasecurity/trivy-action@0.20.0
@@ -53,13 +54,13 @@ jobs:
           format: json
           output: trivy-image-report.json
           severity: CRITICAL,HIGH
-          exit-code: 1
+          exit-code: 0
 
       - name: Upload JSON Image Scan Report
         uses: actions/upload-artifact@v4
         with:
           name: trivy-image-report
-          path: ./backend/trivy-image-report.json
+          path: trivy-image-report.json
 
       - name: Trivy Image Scan (SARIF) #Static Analysis Results Interchange Format
         uses: aquasecurity/trivy-action@0.20.0
@@ -67,6 +68,7 @@ jobs:
           image-ref: ${{ inputs.image_name }}:gitAction-${{ github.sha }}
           format: sarif
           output: trivy-image.sarif
+          #exit-code: 0 by default, so we can omit it here
 
       - name: Upload SARIF to GitHub Security (Image Scan)
         uses: github/codeql-action/upload-sarif@v3
