@@ -145,7 +145,7 @@ jobs:
     needs: [dependency-scan]
     uses: ./.github/workflows/reusable-build.yml
     with:
-      image_name: $IMAGE_NAME
+      image_name: ${{IMAGE_NAME}}
     secrets:
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
       DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
@@ -165,11 +165,11 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
-            docker pull $IMAGE_NAME:latest
+            docker pull ${{IMAGE_NAME}}:latest
             docker stop app || true
             docker rm app || true
             docker run -d \
               --name app \
               -p 4000:4000 \
               --restart unless-stopped \
-              $IMAGE_NAME:latest
+              ${{IMAGE_NAME}}:latest
