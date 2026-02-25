@@ -550,7 +550,9 @@ services:
 
   # --- Jenkins ---
   jenkins:
-    image: jenkins/jenkins:lts
+    build:
+      context: .
+      dockerfile: Dockerfile.jenkins
     container_name: devops-jenkins
     user: root
     environment:

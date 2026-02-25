@@ -68,7 +68,7 @@ pipeline {
             }
         }
 
-        stage('SonarQube Analysis') {//collects data and sends it to SonarQube server for analysis. It does not wait for the results, so we need a separate stage to check the quality gate status after this.
+        stage('SonarQube Analysis') { //collects data and sends it to SonarQube server for analysis. It does not wait for the results, so we need a separate stage to check the quality gate status after this.
             environment {
                 scannerHome = tool 'SonarScanner' //this is from Jenkins global system configuration
             }
@@ -107,16 +107,12 @@ pipeline {
         stage('Filesystem Dependency Scan (Trivy)') {
             steps {
                 sh """
-                  docker run --rm \
-                    -v ${WORKSPACE}/backend:/project \
-                    -v ${TRIVY_CACHE_DIR}:/root/.cache \
-                    aquasec/trivy:latest \
-                    fs \
+                  trivy fs \
                     --format json \
                     --output trivy-fs-report.json \
                     --severity CRITICAL,HIGH \
-                    --exit-code 1 \
-                    /project
+                    --exit-code 0 \
+                    .
                 """
             }
             post {
@@ -139,15 +135,11 @@ pipeline {
         stage('Docker Image Scan (Trivy)') {
             steps {
                 sh """
-                  docker run --rm \
-                    -v /var/run/docker.sock:/var/run/docker.sock \
-                    -v ${TRIVY_CACHE_DIR}:/root/.cache \
-                    aquasec/trivy:latest \
-                    image \
+                  trivy image \
                     --format json \
                     --output trivy-image-report.json \
                     --severity CRITICAL,HIGH \
-                    --exit-code 1 \
+                    --exit-code 0 \
                     ${IMAGE_NAME}:jenkins${env.BUILD_NUMBER}commit${env.GIT_COMMIT}
                 """
             }

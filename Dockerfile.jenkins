@@ -1,0 +1,14 @@
+FROM jenkins/jenkins:lts
+
+USER root
+
+# Install docker CLI (needed for builds)
+RUN apt-get update && \
+    apt-get install -y docker.io curl ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
+
+# Install Trivy (recommended method)
+RUN curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh \
+    | sh -s -- -b /usr/local/bin v0.69.1
+
+USER jenkins
