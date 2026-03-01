@@ -1,0 +1,16 @@
+https://registry.terraform.io/browse/providers
+https://developer.hashicorp.com/terraform/language
+
+terraform init # initialize - by downloading the resource library for the provider stated
+terraform fmt # indent and structure code base
+terrafrom validate # check if config are setting all required input variables, or if passing boolean to a number variable.
+terraform plan # to ensure code is fine
+terrafrom plan -refresh-only
+terrafrom refresh
+terraform apply # to start infra creation.
+terraform apply -refresh-only
+terrafrom destroy
+
+
+terraform taint apply
+terraform ar-file= -var=

@@ -1,0 +1,18 @@
+#will not likely use. because I need to run in cd pipeline.
+- name: Pull backend image
+  docker_image:
+    name: koyex1/backend
+    tag: latest
+    source: pulll
+
+- name: Run backend container
+  docker_container:
+    name: backend
+    image: koyex1/backend:latest
+    ports:
+      - "4000:4000"
+    restart_policy: always #always restart the container if it stops, ensuring that your application remains available even if it encounters issues or crashes. 
+    #others are no( will not restart the container if it stops), on-failure( will restart the container only if it exits with a non-zero status, indicating an error), unless-stopped( will restart the container unless it is explicitly stopped by the user)
+    #kind of similar to always, on-failure and on-cancelled, never in github actions.
+    env:
+      - NODE_ENV=production

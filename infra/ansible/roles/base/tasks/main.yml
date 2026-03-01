@@ -1,0 +1,30 @@
+# base server hardening role
+- name: Update System
+  apt:
+    update_cache: yes
+    upgrade: dist
+- name: Install essential packages
+  apt:
+    state: present
+    name:
+      - curl
+      - wget
+      - git
+      - ufw
+      - fail2ban
+      - htop
+      - net-tools
+      - unzip
+      - ca-certificates
+#Create Deployment User
+- name: Create deploy user
+  user:
+    name: deploy
+    shell: /bin/bash
+    groups: sudo
+    append: yes
+
+- name: Add SSH key for deploy user
+  authorized_key:
+    user: deploy
+    key: "{{ lookup('file', '~/.ssh/id_rsa.pub') }}"

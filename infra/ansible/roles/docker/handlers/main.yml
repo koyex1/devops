@@ -1,0 +1,4 @@
+- name: Restart Docker # Handler to restart the Docker service when notified by tasks that make changes to the Docker configuration. it make look isolated but because of the notify: Restart Docker in the previous task, it is actually connected to the tasks. Whenever a task that modifies the Docker configuration (like updating the daemon.json file) is executed, it will trigger this handler to restart the Docker service, ensuring that the changes take effect immediately.
+  systemd:
+    name: docker
+    state: restarted # Restart the Docker service to apply the new configuration. This is necessary because changes to the Docker daemon configuration file (daemon.json) will not take effect until the service is restarted. Restarting Docker ensures that the new settings are applied and that Docker continues to function properly with the updated configuration.

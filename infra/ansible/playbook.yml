@@ -1,0 +1,7 @@
+- hosts: backend
+  become: true # to run tasks with sudo privileges
+  roles: #would have been tasks if everything was written in playbook.yml
+    - role: base # or - base
+    - role: docker # or - docker
+    - role: security
+    - role: app

@@ -1,0 +1,26 @@
+- name: Install Docker
+  apt:
+    name: docker.io
+    state: present # Check if Docker is already installed, if not, install it
+    update_cache: yes # Update the package index before installing Docker. why? To ensure that you are installing the latest version of Docker available in the package repository(this is just the latest version of the packages name not the package itself). This is important because package repositories are regularly updated with new versions of software, including security patches and bug fixes. By updating the package index, you can avoid installing an outdated version of Docker that may have known vulnerabilities or issues. Additionally, updating the package index can help resolve any dependencies that may be required for Docker to function properly.
+
+- name: Enable Docker
+  service:
+    name: docker
+    enabled: yes # Enable the Docker service to start on boot. This ensures that Docker will automatically start when the server is restarted, allowing your applications to run without manual intervention.
+    state: started 
+
+- name: Add deploy user to docker group
+  user:
+    name: deploy
+    groups: docker
+    append: yes
+
+- name: configure docker daemon
+  template:
+    src: daemon.json.j2
+    dest: /etc/docker/daemon.json
+    owner: root
+    group: root
+    mode: '0644'
+  notify: Restart Docker

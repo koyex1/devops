@@ -1,0 +1,56 @@
+#Failwall setup - UFW (Uncomplicated Firewall) is a user-friendly interface for managing firewall rules on Linux systems. By allowing SSH and the backend port, you can ensure that your server is accessible for remote management and that your application can receive incoming traffic while keeping other ports closed to enhance security.
+- name: Allow SSH
+  ufw:
+    rule: allow
+    port: 22
+    # for name the values to set are openssh, ssh, 22/tcp, 22/udp. I choose port because it is more specific and less likely to cause conflicts with other services that may use the same name or protocol. By specifying the port number directly, you can ensure that the correct rule is applied to allow SSH traffic on the intended port.
+- name: Allow backend port
+  ufw:
+    rule: allows
+    port: 4000 # Allow incoming traffic on port 4000, which is the port your backend application will be running on. This ensures that users can access your application from outside the server.
+
+- name: Enable UFW
+  ufw:
+    state: enabled # Enable the UFW firewall to apply the defined rules and protect your server from unauthorized access. This will activate the firewall and start enforcing the rules you have set up, such as allowing SSH and backend port traffic while blocking other unwanted connections.
+
+# Fail2Ban setup - Fail2Ban is used to protect your server from brute-force attacks by monitoring log files and banning IP addresses that show malicious behavior, such as multiple failed login attempts. By ensuring that Fail2Ban is running and enabled, you can enhance the security of your server and reduce the risk of unauthorized access.
+- name: Ensure fail2ban is running
+  service:
+    name: fail2ban
+    state: started
+    enabled: yes
+
+#swap File - important for small VPS(like 1GB RAM) to prevent out of memory issues. It allows the system to use disk space as virtual memory when the physical RAM is fully utilized, which can help improve performance and stability.
+- name: Create swap file
+  command: fallocate -l 2G /swapfile
+  args:
+    creates: /swapfile
+
+- name: Set swap permissions
+  file:
+    path: /swapfile
+    mode: '0600'
+
+- name: Format swap
+  command: mkswap /swapfile
+  when: ansible_swaptotal_mb == 0
+
+- name: Enable swap
+  command: swapon /swapfile
+  when: ansible_swaptotal_mb == 0
+
+# Directory Structure for App
+- name: Create application directory
+  file:
+    path: /opt/backend
+    state: directory #others are absent( remove the file or directory if it exists), touch( create an empty file if it does not exist, or update the timestamp if it does), link( create a symbolic link to a file or directory), hard( create a hard link to a file)
+    owner: deploy
+    group: deploy
+    mode: '0755'
+
+#logging (if using Filebeat)
+- name: Install filebeat
+  apt:
+    name: filebeat
+    state: present
+    update_cache: yes
