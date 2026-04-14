@@ -1,9 +1,9 @@
 name: Full CI/CD Pipeline
 
 permissions: #permission for reports to be uploaded to GitHub Security tab.
-  contents: read
-  security-events: write
-  actions: read
+  contents: read #for checkout action
+  security-events: write #for uploading sarif reports to security tab
+  actions: read #for reusable workflow
 
 on:
   push:
@@ -21,11 +21,11 @@ env:
 
 jobs:
 
-  lint:
+  lint: #liint job for lightweight static code analysis, which can fail fast before running more expensive jobs like tests and scans.
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: backend
+        working-directory: backend 
     steps:
       - name: checkout code(lint)
         uses: actions/checkout@v4
@@ -59,7 +59,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{env.NODE_VERSION}}
-          cache: npm
+          cache: npm 
           cache-dependency-path: backend/package-lock.json
 
       - name: Install dependencies(test)
@@ -72,13 +72,13 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: junit-report
-          path: ./backend/junit.xml
+          path: ./backend/junit.xml 
 
-      - name: Upload Coverage Report
-        uses: actions/upload-artifact@v4
+      - name: Upload Coverage Report 
+        uses: actions/upload-artifact@v4 
         with:
           name: coverage-report
-          path: ./backend/coverage/
+          path: ./backend/coverage/ 
 
   sonar: 
     if: false
@@ -118,7 +118,7 @@ jobs:
           scan-type: fs
           format: json
           output: trivy-fs-report.json
-          exit-code: 0
+          exit-code: 0 
           severity: CRITICAL,HIGH
 
       - name: Upload FS Scan Report
@@ -157,14 +157,14 @@ jobs:
     needs: build-and-image-scan
     if: github.ref == 'refs/heads/main'
 
-    steps:
+    steps: #deployment cli is ran in server. others like kubectl, google cli 
       - uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
-            docker pull ${{vars.IMAGE_NAME}}:latest
+            docker pull ${{vars.IMAGE_NAME}}:latest #tha
             docker stop app || true
             docker rm app || true
             docker run -d \

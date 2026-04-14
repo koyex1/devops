@@ -1,14 +1,12 @@
-version: "3.9"
-
 services:
   portainer:
     image: portainer/portainer-ce:latest
     container_name: devops-portainer
     restart: unless-stopped
-    ports:
-      - "8100:8000"   # Optional: Edge agent communication
+    ports: #default login is admin and then you will be prompted to change it to your own password when you first access the UI at http://localhost:9443. The port 8100 is for Portainer Agent, which is optional and only needed if you want to manage remote Docker hosts or use the agent-based monitoring features. The port 9004 is for the HTTP Web UI, which is disabled by default for security hardening, but you can enable it if you want to access the UI over HTTP instead of HTTPS. Just make sure to update the URL accordingly when you access the UI.
+      - "8100:8000"   # port for Portainer Agent (optional, only needed if you want to manage remote Docker hosts or use the agent-based monitoring features)
       - "9444:9443"   # HTTPS Web UI
-      - "9004:9000"   # Optional: HTTP (disabled by default)
+      - "9004:9000"   # Optional: HTTP WEB UI (disabled by default) 
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro  # Manage Docker host
       - portainer_data:/data  # Persist configuration
@@ -21,9 +19,9 @@ services:
       POSTGRES_USER: appuser
       POSTGRES_PASSWORD: apppass
       POSTGRES_DB: appdb
-    command: >
+    command: > #command below is to enable pg_stat_statements used by adminer and pmm for query performance monitoring. You can also enable other extensions here if you want, just make sure to install them in the postgres image first by creating a custom Dockerfile that extends the official postgres image and installs the extensions you need.
       postgres
-      -c shared_preload_libraries=pg_stat_statements
+      -c shared_preload_libraries=pg_stat_statements 
       -c pg_stat_statements.track=all
     ports:
       - "5432:5432"
@@ -46,7 +44,7 @@ services:
     container_name: devops-redis
     ports:
       - "6379:6379"
-    command: ["redis-server", "--appendonly", "yes"]
+    command: ["redis-server", "--appendonly", "yes"] # this command enables data persistence by writing every change to disk, so that your data won't be lost when the container restarts. You can also add other redis configuration options here if you want, just make sure to use the correct syntax for the command.
     volumes:
       - redis_data:/data
 
@@ -60,9 +58,9 @@ services:
     image: rabbitmq:3-management
     container_name: devops-rabbitmq
     ports:
-      - "5672:5672"
-      - "15672:15672"
-      - "15692:15692"
+      - "5672:5672" 
+      - "15672:15672" #port for management UI, you can access it at http://localhost:15672 with default username and password both being "guest". This UI allows you to monitor your queues, exchanges, bindings, and also publish messages for testing.
+      - "15692:15692" #port for prometheus metrics, you can access it at http://localhost:15692/metrics to see the raw metrics output. You can also add this endpoint to your Prometheus config to scrape metrics from RabbitMQ.
     env_file:
       - ./secrets/rabbitmq.env
     command: >
@@ -87,7 +85,8 @@ services:
     depends_on:
       - zookeeper
     ports:
-      - "9092:9092"
+      - "9092:9092" #port for external clients like your backend and kafka-ui to connect
+      - "29092:29092" #port for internal communication between kafka and other services
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: "zookeeper:2181"
@@ -113,7 +112,7 @@ services:
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
       KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
 
-  backend:
+  backend: #for the backned we set it up for logs, metrics, tracing and debugging, so we can have a full observability and monitoring setup for our backend service. You can customize the environment variables and ports as needed for your specific use case.
     build:
       context: ./backend
     container_name: devops-backend
@@ -179,7 +178,7 @@ services:
       - backend
       - envoy
 
-  etcd:
+  etcd: #etcd here is used for apisix which is the api gateway.
     image: quay.io/coreos/etcd:v3.5.0
     container_name: devops-etcd
     restart: always
@@ -246,8 +245,8 @@ services:
     environment:
       - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
       - ELASTICSEARCH_USERNAME=kibana_system #kibana_system different from elastic user, which is the superuser. This is for security hardening, so that if kibana is compromised, the attacker won't have full access to elasticsearch. 
-      - ELASTICSEARCH_PASSWORD=tXrPrFLgn0p7AtKlkkeG
-      - xpack.security.enabled=true
+      - ELASTICSEARCH_PASSWORD=l4GiwD8q9OHASKUAA958 #docker exec -it devops-elasticsearch \ elasticsearch-reset-password -u kibana_system
+      - xpack.security.enabled=true 
       - xpack.encryptedSavedObjects.encryptionKey=0123456789abcdef0123456789abcdef
     ports:
       - "5601:5601"
@@ -255,7 +254,7 @@ services:
       - elasticsearch
 
   # --- APM SERVER (Intake) ---
-  apm-server:
+  apm-server: 
     image: docker.elastic.co/apm/apm-server:8.13.4
     container_name: devops-apm-server
     ports:
@@ -270,16 +269,16 @@ services:
       
     depends_on:
       - elasticsearch
-      - kibana
+      - kibana 
 
-  # --- PERCONA PMM SERVER (Monitoring) ---
-  pmm-server:
+  # --- PERCONA PMM SERVER (database Monitoring) ---
+  pmm-server: #pmm full meaning is Percona Monitoring and Management.
     image: percona/pmm-server:2
     container_name: devops-pmm-server
     restart: always
     ports:
-      - "8085:80"
-      - "8443:443"
+      - "8085:80" #port here connects to client, which is your browser to access PMM dashboard, you can change it if you want but make sure to update the URL accordingly when you access the dashboard. The default username and password for PMM are both "admin". You can log in to the PMM dashboard at http://localhost:8085 and start monitoring your databases.
+      - "8443:443" #port here connects to PMM clients, which are the PMM agents running on your database containers. This is the port that PMM agents use to send metrics data to the PMM server. Make sure this port is open and accessible from your database containers so that they can communicate with the PMM server.
     volumes:
       - pmm_data:/srv
   
@@ -359,13 +358,14 @@ services:
   #     - signoz-query-service
 
   #metrics - agents for promethseu
-  node-exporter:
+  node-exporter: #this for the node.
     image: prom/node-exporter:latest
     container_name: devops-node-exporter
     ports:
       - "9101:9100"
-  cadvisor:
-    image: gcr.io/cadvisor/cadvisor:latest
+  cadvisor: #cadvisor is container advisor, for the containers. All the containers in this docker-compose file will be monitored by cadvisor, which provides resource usage and performance characteristics of running containers. It collects, aggregates, processes, and exports information about running containers. This includes information about the container's CPU usage, memory usage, network I/O, and filesystem I/O. You can access the cadvisor UI at http://localhost:8086 to see the metrics for all your containers, or you can add it as a target in your Prometheus config to scrape the metrics and visualize them in Grafana.
+  #it metrics shown are for all containers, not just the backend container, so you can monitor the resource usage of your entire application stack. This is especially useful for identifying performance bottlenecks and optimizing resource allocation across your services.
+    image: gcr.io/cadvisor/cadvisor:latest 
     container_name: devops-cadvisor
     ports:
       - "8086:8080"
@@ -425,6 +425,30 @@ services:
   #    - "9141:9141"
   #  depends_on:
   #    - zookeeper
+  
+
+  #otel and jaeger
+  otel-collector:
+    container_name: devops-otel-collector
+    image: otel/opentelemetry-collector-contrib:0.96.0
+    volumes:
+      - ./otel-config.yaml:/etc/otel/config.yaml
+    command: ["--config=/etc/otel/config.yaml"]
+    ports:
+      - "4317:4317"   # OTLP gRPC
+      - "4318:4318"   # OTLP HTTP
+      - "8889:8889"   # Prometheus metrics endpoint
+
+  jaeger:
+    container_name: devops-jaeger
+    image: jaegertracing/all-in-one:latest
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true 
+      - COLLECTOR_OTLP_HTTP_ENABLED=true
+    ports:
+      - "16686:16686"   # UI
+      - "14250:14250"   # collector gRPC
+      - "14268:14268"   # collector HTTP
 
   #grafana and prometheus
   prometheus:
@@ -500,6 +524,7 @@ services:
   logstash:
     image: docker.elastic.co/logstash/logstash:8.13.4
     container_name: devops-logstash
+    #docker exec -it devops-elasticsearch \ elasticsearch-reset-password -u kibana_system
     ports:
       - "5044:5044"
     volumes:
@@ -536,6 +561,7 @@ services:
     container_name: devops-sonarqube
     depends_on:
       - sonarqube-db
+      - elasticsearch
     environment:
       SONAR_JDBC_URL: jdbc:postgresql://sonarqube-db:5432/sonarqube
       SONAR_JDBC_USERNAME: sonar
@@ -558,8 +584,8 @@ services:
     environment:
       JAVA_OPTS: -Dhudson.model.DirectoryBrowserSupport.CSP=
     ports:
-      - "8480:8080"
-      - "50000:50000"
+      - "8480:8080" # Jenkins Web UI
+      - "50000:50000" # Jenkins agent communication
     volumes:
       - jenkins_home:/var/jenkins_home
       - /var/run/docker.sock:/var/run/docker.sock

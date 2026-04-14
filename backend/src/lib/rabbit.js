@@ -6,7 +6,7 @@ async function initRabbit(logger) {
   const ch = await conn.createChannel();//creating connection to the broker
   const q = process.env.RABBITMQ_QUEUE || "jobs.queue";
   await ch.assertQueue(q, { durable: true });
-  logger.info({ queue: q }, "RabbitMQ ready");
+  logger.info({ queue: conn,  }, "RabbitMQ ready");
   return { conn, ch, queue: q };
 }
 

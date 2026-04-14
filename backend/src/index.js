@@ -1,5 +1,11 @@
+require('elastic-apm-node').start({//this is for elastic apm, you can choose to use either elastic apm or signoz otel or both if you want. Just make sure to set the appropriate environment variables for each and configure them correctly in your Docker setup.
+ serviceName: 'backend-service',
+ serverUrl: 'http://apm-server:8200',
+ environment: 'production',
+ metricsInterval: '30s'
+});
 require("dotenv").config();
-
+const { trace } = require('@opentelemetry/api');
 const http = require("http");
 const express = require("express");
 const helmet = require("helmet");
@@ -36,31 +42,36 @@ The collector can receive OTLP data over both gRPC and HTTP, but using HTTP here
 Make sure to set the OTEL_EXPORTER_OTLP_ENDPOINT environment variable to point to your SigNoz collector's OTLP HTTP endpoint (e.g., http://devops-signoz:4318/v1/traces) in your Docker setup. 
 This will allow your backend service to send trace data to SigNoz for visualization and analysis. */
 //------------------SIGNOZ OTEL IMPORTED -------------------
-require('./tracing.js');
+//require('./tracing.js');
+//require('./tracingj.js');
 //------------------APM SETUP FOR ELASTIC APM -------------------
-require('elastic-apm-node').start({
-  serviceName: 'backend-service',
-  serverUrl: 'http://apm-server:8200',
-  environment: 'production',
+//require('elastic-apm-node').start({//this is for elastic apm, you can choose to use either elastic apm or signoz otel or both if you want. Just make sure to set the appropriate environment variables for each and configure them correctly in your Docker setup.
+ // serviceName: 'backend-service',
+ // serverUrl: 'http://apm-server:8200',
+ // environment: 'production',
   // Enables deep metrics like GC pauses
-  metricsInterval: '30s'
-});
-
-
-
+ // metricsInterval: '30s'
+//});
 
 async function main() {
   const app = express();
   const server = http.createServer(app);
   attachWs(server, { logger });
-  //prometheus for metrics
+
+  // this below is for prometheus metrics collection. it sets up a /metrics endpoint that prometheus can use to scrape metrics from this backend service. The collectDefaultMetrics function collects a standard set of Node.js metrics (like CPU usage, memory usage, event loop lag, etc.) and the /metrics endpoint serves these metrics in a format that Prometheus can understand. Make sure to configure your Prometheus server to scrape this endpoint (e.g., http://backend-service:4000/metrics) in your Docker setup.
   const register = new client.Registry();
   client.collectDefaultMetrics({ register });
-
   app.get('/metrics', async (req, res) => {
     res.set('Content-Type', register.contentType);
     res.end(await register.metrics());
   });
+
+  app.get('/debug', (req, res) => {
+  const span = trace.getTracer('debug').startSpan('debug-span');
+  console.log("SPAN CREATED");
+  span.end();
+  res.send('ok');
+});
 
   // --- OWASP-ish baseline hardening ---
   app.disable("x-powered-by");

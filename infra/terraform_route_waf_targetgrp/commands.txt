@@ -1,0 +1,15 @@
+https://registry.terraform.io/browse/providers
+https://developer.hashicorp.com/terraform/language
+
+terraform init # initialize - by downloading the resource library for the provider stated
+terraform fmt # indent and structure code base
+terrafrom validate # check if config are setting all required input variables, or if passing boolean to a number variable.
+terraform plan # to ensure code is fine
+terraform plan -refresh-only        # Compares real infrastructure state with the current Terraform state file, refreshes state from the live environment, and shows what would change in the state file WITHOUT proposing infrastructure modifications.
+terraform refresh       #legacy     #Directly updates the Terraform state file to match real-world infrastructure WITHOUT showing a plan and WITHOUT changing actual infrastructure (legacy command, mostly replaced by plan/apply -refresh-only).
+terraform apply -refresh-only       # Refreshes the Terraform state from live infrastructure AND writes those state updates to the state file after confirmation, WITHOUT modifying any real infrastructure resources.
+terrafrom destroy
+
+
+terraform taint apply
+terraform ar-file= -var=

@@ -31,13 +31,13 @@ locals {
 # S3 bucket for ALB access logs
 # ----------------------------
 resource "random_id" "logs" {
-  byte_length = 4
+  byte_length = 4 # 4 bytes = 8 hex characters, example is "1a2b3c4d", which is enough for uniqueness in this context
 }
 
 resource "aws_s3_bucket" "alb_logs" {
   count         = var.alb_access_logs_enabled ? 1 : 0
   bucket        = "${var.project_name}-${var.environment}-alb-logs-${random_id.logs.hex}"
-  force_destroy = var.alb_logs_force_destroy
+  force_destroy = var.alb_logs_force_destroy #force destroy because a bucket must be empty before deletion, and this will automatically delete all objects when you run terraform destroy. Be careful with this in production!
   tags          = local.tags
 }
 
@@ -64,7 +64,7 @@ data "aws_elb_service_account" "this" {}
 data "aws_iam_policy_document" "alb_logs" {
   count = var.alb_access_logs_enabled ? 1 : 0
 
-  statement {
+  statement {#EAR(Effect, Action, Resource
     sid = "AWSALBAccessLogs"
     principals {
       type        = "AWS"

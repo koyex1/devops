@@ -24,7 +24,8 @@
     groups: sudo
     append: yes
 
-- name: Add SSH key for deploy user
+- name: Add SSH key for deploy user  #if i want to ssh from gitaction into this server this step helps you do this by adding your public SSH key to the deploy user's authorized_keys file, allowing you to authenticate using your private key when connecting via SSH.
+# to output this private key you will 
   authorized_key:
     user: deploy
     key: "{{ lookup('file', '~/.ssh/id_rsa.pub') }}"

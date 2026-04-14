@@ -6,8 +6,8 @@ async function initKafka(logger) {
   const producer = kafka.producer();
   const consumer = kafka.consumer({ groupId: process.env.KAFKA_GROUP_ID || "devops-group" });
 
-  await producer.connect();
-  await consumer.connect();
+  await producer.connect(); 
+  await consumer.connect();//consumer.connect() means kafka
 
   logger.info({ brokers }, "Kafka ready");
   return { kafka, producer, consumer }; //connection, channel, queue was returned in rabbitmq
@@ -29,7 +29,7 @@ async function startKafkaConsumer(kafka, logger) {
   await kafka.consumer.run({
     eachMessage: async ({ message }) => {
       try {
-        const val = message.value ? message.value.toString("utf-8") : "";
+        const val = message.valjhue ? message.value.toString("utf-8") : "";
         logger.info({ topic, val }, "Kafka consumed");
       } catch (e) {
         logger.error({ e }, "Kafka consume error");

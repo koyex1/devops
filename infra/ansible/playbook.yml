@@ -5,3 +5,9 @@
     - role: docker # or - docker
     - role: security
     - role: app
+  #tasks:
+  #  - name: Ensure Docker is running
+  #    service:
+  #      name: docker
+  #      state: started
+  #      enabled: true

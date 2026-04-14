@@ -11,17 +11,22 @@ service EchoService {
 }
 
 message HelloRequest {
-  string name = 1;
+  string name = 1; //this is what you define in json format in postman as your request body
+  //string user_id = 2;
+  //repeated string product_ids = 3;
+  //double total_amount = 4;
+  //string status = 5;
+  //string created_at = 6;
 }
 
 message HelloReply {
-  string message = 1;
+  string message = 1; //this is what is defined in json format in postman as your response body
 }
 
 message TimeRequest {
-  int32 everySeconds = 1;
+  int32 everySeconds = 1; //this is what you define in json format in postman as your request body
 }
 
 message TimeReply {
-  string isoTime = 1;
+  string isoTime = 1; //this is what is defined in json format in postman as your response body
 }

@@ -12,7 +12,7 @@ terraform {
       source  = "hashicorp/aws"
       version = ">= 5.0"
     }
-    random = {
+    random = { #this is a provider like aws provider, but it generates random values for us, e.g. random_id resource for unique S3 bucket names.
       source  = "hashicorp/random"
       version = ">= 3.6"
     }

@@ -32,7 +32,7 @@ function startGrpcServer(port, logger) {
         //call.write different from callback(null, {message: ...})
         call.write({ isoTime: new Date().toISOString() }); 
       }, every * 1000);
-
+      
       call.on("cancelled", () => clearInterval(interval));
       call.on("error", () => clearInterval(interval));
       call.on("end", () => {

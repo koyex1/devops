@@ -24,6 +24,7 @@ runs:
 
 
 
+
 name: 'SonarQube Scan'
 description: 'Runs SonarQube analysis'
 

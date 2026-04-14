@@ -60,13 +60,13 @@ variable "alb_access_logs_enabled" {
   default = true
 }
 
-variable "alb_logs_force_destroy" {
+variable "alb_logs_force_destroy" { #Careful with this! It will delete all objects in the bucket when you run terraform destroy.
   type    = bool
   default = false
 }
 
 # If you *really* want to attempt to fetch ALB IPs (NOT stable), enable this.
-variable "enable_alb_ip_lookup" {
+variable "enable_alb_ip_lookup" {#Careful with this! It will make API calls to AWS every 5 minutes to fetch ALB IPs, which can cause rate limiting and is not recommended for production use.
   type    = bool
   default = false
 }
